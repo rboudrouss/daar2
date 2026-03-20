@@ -11,50 +11,57 @@ import characteristics.Parameters;
 import characteristics.IFrontSensorResult;
 
 public class Mule extends Brain {
-  //---PARAMETERS---//
+  // ---PARAMETERS---//
   private static final double HEADINGPRECISION = 0.001;
 
-  //---VARIABLES---//
+  // ---VARIABLES---//
   private boolean turnLeftTask;
   private double endTaskDirection;
 
-  //---CONSTRUCTORS---//
-  public Mule() { super(); }
+  // ---CONSTRUCTORS---//
+  public Mule() {
+    super();
+  }
 
-  //---ABSTRACT-METHODS-IMPLEMENTATION---//
+  // ---ABSTRACT-METHODS-IMPLEMENTATION---//
   public void activate() {
-    turnLeftTask=false;
+    turnLeftTask = false;
     move();
     sendLogMessage("Moving a head. Waza!");
   }
+
   public void step() {
     if (turnLeftTask) {
       if (isHeading(endTaskDirection)) {
-	turnLeftTask=false;
-	move();
+        turnLeftTask = false;
+        move();
         sendLogMessage("Moving a head. Waza!");
       } else {
-	stepTurn(Parameters.Direction.LEFT);
+        stepTurn(Parameters.Direction.LEFT);
         sendLogMessage("Iceberg at 12 o'clock. Heading 9!");
       }
       return;
     }
-    if (detectFront().getObjectType()==IFrontSensorResult.Types.OpponentMainBot) {
+    if (detectFront().getObjectType() == IFrontSensorResult.Types.OpponentMainBot) {
       fire(getHeading());
       return;
     }
-    if (!(detectFront().getObjectType()==IFrontSensorResult.Types.WALL || detectFront().getObjectType()==IFrontSensorResult.Types.Wreck)) {
-      if (Math.random()<0.98) move(); //And what to do when blind blocked?
-      else fire(getHeading());
+    if (!(detectFront().getObjectType() == IFrontSensorResult.Types.WALL
+        || detectFront().getObjectType() == IFrontSensorResult.Types.Wreck)) {
+      if (Math.random() < 0.98)
+        move(); // And what to do when blind blocked?
+      else
+        fire(getHeading());
       sendLogMessage("Moving a head. Waza!");
     } else {
-      turnLeftTask=true;
-      endTaskDirection=getHeading()+Parameters.LEFTTURNFULLANGLE;
+      turnLeftTask = true;
+      endTaskDirection = getHeading() + Parameters.LEFTTURNFULLANGLE;
       stepTurn(Parameters.Direction.LEFT);
       sendLogMessage("Iceberg at 12 o'clock. Heading 9!");
     }
   }
-  private boolean isHeading(double dir){
-    return Math.abs(Math.sin(getHeading()-dir))<HEADINGPRECISION;
+
+  private boolean isHeading(double dir) {
+    return Math.abs(Math.sin(getHeading() - dir)) < HEADINGPRECISION;
   }
 }

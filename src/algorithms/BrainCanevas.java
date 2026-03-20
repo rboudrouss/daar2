@@ -10,15 +10,18 @@ import robotsimulator.Brain;
 import characteristics.IFrontSensorResult;
 
 public class BrainCanevas extends Brain {
-  public BrainCanevas() { super(); }
+  public BrainCanevas() {
+    super();
+  }
 
   public void activate() {
-    //---PARTIE A MODIFIER/ECRIRE---//
+    // ---PARTIE A MODIFIER/ECRIRE---//
     move();
   }
+
   public void step() {
-    //---PARTIE A MODIFIER/ECRIRE---//
-    if (detectFront().getObjectType()==IFrontSensorResult.Types.NOTHING) {
+    // ---PARTIE A MODIFIER/ECRIRE---//
+    if (detectFront().getObjectType() == IFrontSensorResult.Types.NOTHING) {
       move();
     }
   }
