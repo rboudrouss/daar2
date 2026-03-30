@@ -34,13 +34,17 @@ public class MacDuoMain extends MacDuoBaseBot {
         boolean top = false;
         boolean bottom = false;
         for (IRadarResult o : detectRadar()) {
-            if (isSameDirection(o.getObjectDirection(), Parameters.NORTH)) top = true;
-            else if (isSameDirection(o.getObjectDirection(), Parameters.SOUTH)) bottom = true;
+            if (isSameDirection(o.getObjectDirection(), Parameters.NORTH))
+                top = true;
+            else if (isSameDirection(o.getObjectDirection(), Parameters.SOUTH))
+                bottom = true;
         }
 
         whoAmI = MAIN3;
-        if (top && bottom) whoAmI = MAIN2;
-        else if (!top && bottom) whoAmI = MAIN1;
+        if (top && bottom)
+            whoAmI = MAIN2;
+        else if (!top && bottom)
+            whoAmI = MAIN1;
 
         switch (whoAmI) {
             case MAIN1:
@@ -64,7 +68,6 @@ public class MacDuoMain extends MacDuoBaseBot {
     public void step() {
         // Debug messages
         boolean debug = true;
-        
 
         detection();
         readMessages();
@@ -82,14 +85,17 @@ public class MacDuoMain extends MacDuoBaseBot {
             }
         }
 
-		if (debug && whoAmI == MAIN1) {
-            sendLogMessage("#MAIN1 *thinks* (x,y)= ("+(int)myPos.getX()+", "+(int)myPos.getY()+") theta= "+(int)(myGetHeading()*180/(double)Math.PI)+"°. #State= "+state);
+        if (debug && whoAmI == MAIN1) {
+            sendLogMessage("#MAIN1 *thinks* (x,y)= (" + (int) myPos.getX() + ", " + (int) myPos.getY() + ") theta= "
+                    + (int) (myGetHeading() * 180 / (double) Math.PI) + "°. #State= " + state);
         }
         if (debug && whoAmI == MAIN2) {
-            sendLogMessage("#MAIN2 *thinks* (x,y)= ("+(int)myPos.getX()+", "+(int)myPos.getY()+") theta= "+(int)(myGetHeading()*180/(double)Math.PI)+"°. #State= "+state);
+            sendLogMessage("#MAIN2 *thinks* (x,y)= (" + (int) myPos.getX() + ", " + (int) myPos.getY() + ") theta= "
+                    + (int) (myGetHeading() * 180 / (double) Math.PI) + "°. #State= " + state);
         }
         if (debug && whoAmI == MAIN3) {
-            sendLogMessage("#MAIN3 *thinks* (x,y)= ("+(int)myPos.getX()+", "+(int)myPos.getY()+") theta= "+(int)(myGetHeading()*180/(double)Math.PI)+"°. #State= "+state);
+            sendLogMessage("#MAIN3 *thinks* (x,y)= (" + (int) myPos.getX() + ", " + (int) myPos.getY() + ") theta= "
+                    + (int) (myGetHeading() * 180 / (double) Math.PI) + "°. #State= " + state);
         }
 
         try {
@@ -149,7 +155,8 @@ public class MacDuoMain extends MacDuoBaseBot {
             if (allyPos.get(whoAmI).isAlive() && o.getObjectType() != IRadarResult.Types.BULLET) {
                 if (state == State.MOVING_BACK) {
                     for (Position p : getObstacleCorners(o, myPos.getX(), myPos.getY())) {
-                        boolean obstacleInPath = isPointInTrajectory(myPos.getX(), myPos.getY(), normalize(getHeading() + Math.PI), p.getX(), p.getY());
+                        boolean obstacleInPath = isPointInTrajectory(myPos.getX(), myPos.getY(),
+                                normalize(getHeading() + Math.PI), p.getX(), p.getY());
                         if (obstacleInPath) {
                             obstacleDirection = o.getObjectDirection();
                             initiateObstacleAvoidance();
@@ -157,7 +164,8 @@ public class MacDuoMain extends MacDuoBaseBot {
                     }
                 } else {
                     for (Position p : getObstacleCorners(o, myPos.getX(), myPos.getY())) {
-                        boolean obstacleInPath = isPointInTrajectory(myPos.getX(), myPos.getY(), getHeading(), p.getX(), p.getY());
+                        boolean obstacleInPath = isPointInTrajectory(myPos.getX(), myPos.getY(), getHeading(), p.getX(),
+                                p.getY());
                         if (obstacleInPath) {
                             obstacleDirection = o.getObjectDirection();
                             initiateObstacleAvoidance();
@@ -165,8 +173,10 @@ public class MacDuoMain extends MacDuoBaseBot {
                     }
                 }
             }
-            if (o.getObjectType() == IRadarResult.Types.OpponentMainBot || o.getObjectType() == IRadarResult.Types.OpponentSecondaryBot) {
-                broadcast("ENEMY " + o.getObjectDirection() + " " + o.getObjectDistance() + " " + o.getObjectType() + " " + oX + " " + oY);
+            if (o.getObjectType() == IRadarResult.Types.OpponentMainBot
+                    || o.getObjectType() == IRadarResult.Types.OpponentSecondaryBot) {
+                broadcast("ENEMY " + o.getObjectDirection() + " " + o.getObjectDistance() + " " + o.getObjectType()
+                        + " " + oX + " " + oY);
                 addOrUpdateEnemy(oX, oY, o.getObjectDistance(), o.getObjectDirection(), true, o.getObjectType());
                 if (!enemyDetected) {
                     enemyDetected = true;
@@ -174,7 +184,7 @@ public class MacDuoMain extends MacDuoBaseBot {
             }
             if (o.getObjectType() == IRadarResult.Types.Wreck) {
                 broadcast("WRECK " + oX + " " + oY);
-                handleWreckMessage(new String[]{"WRECK", String.valueOf(oX), String.valueOf(oY)});
+                handleWreckMessage(new String[] { "WRECK", String.valueOf(oX), String.valueOf(oY) });
             }
         }
         if (!enemyDetected && state != State.FIRE && !isShooterAvoiding) {
@@ -200,7 +210,7 @@ public class MacDuoMain extends MacDuoBaseBot {
                     break;
                 case "DEAD":
                     BotState bot = allyPos.get(parts[1]);
-					bot.setAlive(false);
+                    bot.setAlive(false);
                     break;
             }
         }
@@ -246,7 +256,7 @@ public class MacDuoMain extends MacDuoBaseBot {
             }
         }
         if (!exists) {
-            wreckPositions.add(new double[]{wreckX, wreckY});
+            wreckPositions.add(new double[] { wreckX, wreckY });
         }
 
         Ennemy detectedEnemyWreck = null;
@@ -257,7 +267,8 @@ public class MacDuoMain extends MacDuoBaseBot {
             }
         }
         enemyTargets.remove(detectedEnemyWreck);
-        enemyPosToAvoid.add(detectedEnemyWreck != null ? detectedEnemyWreck : new Ennemy(wreckX, wreckY, 0, 0, Types.OpponentSecondaryBot));
+        enemyPosToAvoid.add(detectedEnemyWreck != null ? detectedEnemyWreck
+                : new Ennemy(wreckX, wreckY, 0, 0, Types.OpponentSecondaryBot));
     }
 
     private void handleEnemyMessage(String[] parts) {
@@ -276,37 +287,39 @@ public class MacDuoMain extends MacDuoBaseBot {
             if (avoidingEnnemy) {
                 if (!isRoughlySameDirection(target.direction, getHeading())) {
                     turnTo(target.direction);
-					avoidingEnnemy = false;
+                    avoidingEnnemy = false;
                     return;
                 }
                 if (distance(new Position(target.x, target.y), myPos) < 980) {
                     for (IRadarResult o : detectRadar()) {
                         if (allyPos.get(whoAmI).isAlive() && o.getObjectType() != IRadarResult.Types.BULLET) {
                             for (Position p : getObstacleCorners(o, myPos.getX(), myPos.getY())) {
-                                boolean obstacleInPath = isPointInTrajectory(myPos.getX(), myPos.getY(), normalize(getHeading() + Math.PI), p.getX(), p.getY());
+                                boolean obstacleInPath = isPointInTrajectory(myPos.getX(), myPos.getY(),
+                                        normalize(getHeading() + Math.PI), p.getX(), p.getY());
                                 if (obstacleInPath) {
                                     initiateObstacleAvoidance();
-                					avoidingEnnemy = false;
+                                    avoidingEnnemy = false;
                                     return;
                                 }
                             }
-                            
+
                         }
                     }
                     myMove(false);
                 } else {
                     for (IRadarResult o : detectRadar()) {
                         if (allyPos.get(whoAmI).isAlive() && o.getObjectType() != IRadarResult.Types.BULLET) {
-                           for (Position p : getObstacleCorners(o, myPos.getX(), myPos.getY())) {
-                                boolean obstacleInPath = isPointInTrajectory(myPos.getX(), myPos.getY(), getHeading(), p.getX(), p.getY());
+                            for (Position p : getObstacleCorners(o, myPos.getX(), myPos.getY())) {
+                                boolean obstacleInPath = isPointInTrajectory(myPos.getX(), myPos.getY(), getHeading(),
+                                        p.getX(), p.getY());
                                 if (obstacleInPath) {
                                     initiateObstacleAvoidance();
-                					avoidingEnnemy = false;
+                                    avoidingEnnemy = false;
                                     return;
                                 }
-                               }
                             }
                         }
+                    }
                     myMove(true);
                 }
                 avoidingEnnemy = false;
@@ -317,8 +330,10 @@ public class MacDuoMain extends MacDuoBaseBot {
             double firingAngle = tryFindAngle(myPos, target);
             if (firingAngle != Double.NaN) {
                 fire(firingAngle);
-                if (target.equals(lastTarget)) fireStrike++;
-                else fireStrike = 0;
+                if (target.equals(lastTarget))
+                    fireStrike++;
+                else
+                    fireStrike = 0;
                 if (fireStrike >= MAX_FIRESTRIKE) {
                     enemyTargets.remove(target);
                     fireStrike = 0;
@@ -346,17 +361,16 @@ public class MacDuoMain extends MacDuoBaseBot {
 
         double maxDeviation = Math.atan((BOT_BULLET_RADIUS - 1) / Math.max(vectorNorm, 1.0));
 
-        double[] angles = {centerAngle, centerAngle - maxDeviation, centerAngle + maxDeviation};
+        double[] angles = { centerAngle, centerAngle - maxDeviation, centerAngle + maxDeviation };
         for (double angle : angles) {
             Position firingEnd = new Position(
-                from.getX() + Math.cos(angle) * Parameters.bulletRange,
-                from.getY() + Math.sin(angle) * Parameters.bulletRange
-            );
+                    from.getX() + Math.cos(angle) * Parameters.bulletRange,
+                    from.getY() + Math.sin(angle) * Parameters.bulletRange);
             if (isFiringLineSafe(firingEnd)) {
                 return angle;
             }
         }
-        return Double.NaN; 
+        return Double.NaN;
     }
 
     private boolean isFiringLineSafe(Position end) {
@@ -377,7 +391,8 @@ public class MacDuoMain extends MacDuoBaseBot {
         return true;
     }
 
-    private void addOrUpdateEnemy(double x, double y, double distance, double direction, boolean isMyDetection, Types type) {
+    private void addOrUpdateEnemy(double x, double y, double distance, double direction, boolean isMyDetection,
+            Types type) {
         if (!isMyDetection) {
             double dx = x - myPos.getX();
             double dy = y - myPos.getY();
@@ -463,13 +478,16 @@ public class MacDuoMain extends MacDuoBaseBot {
                 if (ally.whoAmI == NBOT || ally.whoAmI == SBOT) {
                     for (Map.Entry<String, BotState> entry : allyPos.entrySet()) {
                         double distance = distance(entry.getValue().getPosition(), myPos);
-                        if (entry.getValue().isAlive() && distance < DISTANCE_SCOUT_SHOOTER && entry.getKey() != NBOT && entry.getKey() != SBOT) {
-                            predictedAllyPos = new Position(ally.getPosition().getX() + Math.cos(getHeading()) * 3, ally.getPosition().getY() + Math.sin(getHeading()) * 3);
+                        if (entry.getValue().isAlive() && distance < DISTANCE_SCOUT_SHOOTER && entry.getKey() != NBOT
+                                && entry.getKey() != SBOT) {
+                            predictedAllyPos = new Position(ally.getPosition().getX() + Math.cos(getHeading()) * 3,
+                                    ally.getPosition().getY() + Math.sin(getHeading()) * 3);
                             break;
                         }
                     }
                 } else {
-                    predictedAllyPos = new Position(ally.getPosition().getX() + Math.cos(getHeading()), ally.getPosition().getY() + Math.sin(getHeading()));
+                    predictedAllyPos = new Position(ally.getPosition().getX() + Math.cos(getHeading()),
+                            ally.getPosition().getY() + Math.sin(getHeading()));
                 }
                 if (isObstacleOnMyFire(predictedAllyPos, predictedTarget, BOT_RADIUS)) {
                     obstacleInTheWay = true;
@@ -477,13 +495,15 @@ public class MacDuoMain extends MacDuoBaseBot {
                 }
             }
 
-            /*for (double[] wreck : wreckPositions) {
-                Position wreckCenter = new Position(wreck[0], wreck[1]);
-                if (isObstacleOnMyFire(wreckCenter, predictedTarget, BOT_RADIUS)) {
-                    obstacleInTheWay = true;
-                    break;
-                }
-            }*/
+            /*
+             * for (double[] wreck : wreckPositions) {
+             * Position wreckCenter = new Position(wreck[0], wreck[1]);
+             * if (isObstacleOnMyFire(wreckCenter, predictedTarget, BOT_RADIUS)) {
+             * obstacleInTheWay = true;
+             * break;
+             * }
+             * }
+             */
 
             if (!obstacleInTheWay) {
                 return enemy;
