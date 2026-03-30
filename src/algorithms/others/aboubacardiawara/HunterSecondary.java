@@ -14,7 +14,6 @@ public class HunterSecondary extends SecondaryBotBaseBrain {
   protected double targetHeading;
   private boolean detected;
   private int moveacount = 200;
-  private int angleturn = 1;
   private int move_back_count = 100;
   private boolean bullet_detected = false;
 
@@ -108,7 +107,6 @@ public class HunterSecondary extends SecondaryBotBaseBrain {
     DetecState.setStateAction(() -> {
       move_back_count = 100;
       detected = false;
-      int nombre_robot_vivivant = 0;
       for (IRadarResult radarResult : detectRadar()) {
         // current hour-minute-second
         if (isOpponentBot(radarResult) && isNotDead(radarResult)) {
@@ -120,7 +118,6 @@ public class HunterSecondary extends SecondaryBotBaseBrain {
           // logger.info(message);
           broadcast(message);
           detected = true;
-          nombre_robot_vivivant++;
         }
 
         if (radarResult.getObjectType() == IRadarResult.Types.BULLET) {
@@ -182,7 +179,9 @@ public class HunterSecondary extends SecondaryBotBaseBrain {
         turnRight();
       });
       STTurnNorth.addNext(DetecState, () -> isSameDirection(getHeading(), Parameters.WEST));
-      STTurnNorth.setStateAction(() -> {  turnRight(); });
+      STTurnNorth.setStateAction(() -> {
+        turnRight();
+      });
     }
 
     return initState;
@@ -219,27 +218,6 @@ public class HunterSecondary extends SecondaryBotBaseBrain {
       String message = buildOpponentPosMessage(radarResult, opponentPosX, opponentPosY);
       broadcast(message);
     }
-  }
-
-  /**
-   * Verifie si j'ai un ennemi devant mois
-   * 
-   * @return
-   */
-  private boolean opponentFrontOfMe() {
-    // 1. detecte radar: objets
-    // 2. si un enemi est devant moi avec une ouverture de 45°, return vrai
-    // 3. sinon return faux
-    for (IRadarResult radar : detectRadar()) {
-      if (radar.getObjectType() == IRadarResult.Types.OpponentMainBot
-          || radar.getObjectType() == IRadarResult.Types.OpponentSecondaryBot) {
-        double direction = normalize(radar.getObjectDirection());
-        if (direction > -Math.PI / 8 && direction < Math.PI / 8) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   @Override

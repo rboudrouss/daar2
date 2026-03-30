@@ -181,7 +181,7 @@ abstract class MacDuoBaseBot extends Brain {
     protected double getNearestAllowedDirection(double angle) {
         double[] allowedAngles = {
                 0, // Est (0°)
-                // Math.PI / 4, // Nord-Est (45°)
+                   // Math.PI / 4, // Nord-Est (45°)
                 Math.PI / 2, // Nord (90°)
                 // 3 * Math.PI / 4, // Nord-Ouest (135°)
                 Math.PI, // Ouest (180°)

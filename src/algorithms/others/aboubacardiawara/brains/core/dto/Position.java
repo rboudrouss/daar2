@@ -1,6 +1,5 @@
 package algorithms.others.aboubacardiawara.brains.core.dto;
 
-
 /**
  * Position
  */

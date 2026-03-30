@@ -3,7 +3,6 @@ package algorithms.others.aboubacardiawara.statemachine.interfaces;
 import java.util.function.Supplier;
 import algorithms.others.aboubacardiawara.statemachine.AnyTransitionConditionMetException;
 
-
 public interface IState {
     boolean hasNext();
 

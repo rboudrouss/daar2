@@ -15,10 +15,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Logger;
 
-import algorithms.others.aboubacardiawara.brains.core.dto.RobotState;
 import algorithms.others.aboubacardiawara.statemachine.AnyTransitionConditionMetException;
 import algorithms.others.aboubacardiawara.statemachine.interfaces.IState;
-
 
 public abstract class BaseBrain extends Brain {
 

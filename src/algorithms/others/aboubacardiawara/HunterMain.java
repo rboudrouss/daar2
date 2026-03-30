@@ -1,6 +1,5 @@
 package algorithms.others.aboubacardiawara;
 
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -21,18 +20,16 @@ import characteristics.Parameters;
 public class HunterMain extends MainBotBaseBrain {
 
     private double targetDirection;
-    private Position targetPosition = Position.of(0, 0);
     protected double randWalkDirection;
     protected int randWalkMoveCount;
     protected Position rendezVousPosition;
-    protected final int teammateRadius = 3;
+    protected final int teammateRadius = 55;
     protected double findALineOfFireStartAngle;
     protected double findALineOfFireMoveCounter;
     protected double rotationCount;
     private boolean bullet_detected = false;
     private boolean opponent_detected = false;
     boolean fire_opennet_detected = false;
-    private int move_back_count = 150;
     private int init_place_robot = 150;
     double initStateAngleTarget = 0;
 
@@ -138,7 +135,6 @@ public class HunterMain extends MainBotBaseBrain {
 
         STMoveEast.addNext(STStartFire, () -> opponent_detected);
         STMoveEast.setStateAction(() -> {
-            move_back_count = 150;
             for (IRadarResult radar : detectRadar()) {
                 if (radar.getObjectType() == IRadarResult.Types.BULLET
                         && radar.getObjectType() == IRadarResult.Types.OpponentMainBot) {
@@ -169,7 +165,6 @@ public class HunterMain extends MainBotBaseBrain {
         STStartFire.addNext(STMoveEast, () -> !opponent_detected && !fire_opennet_detected);
         STStartFire.setStateAction(() -> {
             fire_opennet_detected = false;
-            move_back_count = 50;
             for (IRadarResult radar : detectRadar()) {
                 if (radar.getObjectType() == IRadarResult.Types.BULLET
                         && radar.getObjectType() == IRadarResult.Types.OpponentMainBot) {
@@ -221,66 +216,8 @@ public class HunterMain extends MainBotBaseBrain {
         return initState;
     }
 
-    /**
-     * Verifie si j'ai un ennemi devant mois
-     * 
-     * @return
-     */
-    private boolean opponentFrontOfMe() {
-        // 1. detecte radar: objets
-        // 2. si un enemi est devant moi avec une ouverture de 45°, return vrai
-        // 3. sinon return faux
-        for (IRadarResult radar : detectRadar()) {
-            if (radar.getObjectType() == IRadarResult.Types.OpponentMainBot
-                    || radar.getObjectType() == IRadarResult.Types.OpponentSecondaryBot) {
-                double direction = normalize(radar.getObjectDirection());
-                if (direction > -Math.PI / 2 && direction < Math.PI / 2
-                        || direction > 3 * Math.PI / 2 && direction < 2 * Math.PI) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean fireConditionMeet() {
-
-        boolean opponentOnSight = detectOpponents().size() > 0;
-        if (opponentOnSight) {
-            targetDirection = -1; // TODO
-            return true;
-        }
-        if (this.targetPosition == null) {
-            return false;
-        }
-        double distance = this.targetPosition.distanceTo(Position.of(robotX, robotY));
-
-        return distance < Parameters.bulletRange;
-    }
-
     protected boolean isSameDirection(double heading, double expectedDirection, boolean log) {
         return super.isSameDirection(heading, expectedDirection);
-    }
-
-    private boolean anyTeammatesInLineOfFire(Position targetPosition) {
-        for (Robots robot : teammatesPositions.keySet()) {
-            RobotState robotState = teammatesPositions.get(robot);
-            Position pos = robotState.getPosition();
-            if (robotState.getHealth() >= 0) {
-                boolean notMe = robotState.getRobotName() != this.currentRobot;
-                if (notMe && isInInLineOfFire(pos, targetPosition, teammateRadius)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean isInInLineOfFire(Position teammatePosition, Position targePosition, int r) {
-        return teammatePosition.pointBelongToLine(
-                robotX, robotY,
-                targetPosition.getX(), targetPosition.getY(),
-                r);
     }
 
     private ArrayList<String> filterMessages(Predicate<String> f) {
@@ -313,7 +250,6 @@ public class HunterMain extends MainBotBaseBrain {
             Position closestPos = optionalPosition.get();
             double distance = closestPos.distanceTo(Position.of(robotX, robotY));
             // effet de bord
-            this.targetPosition = closestPos;
             this.targetDirection = Math.atan2(closestPos.getY() - robotY, closestPos.getX() - robotX);
             if (distance > Parameters.bulletRange) {
                 return DetectionResultCode.OPPONENT_OUT_OF_LINE_OF_FIRE;
@@ -332,13 +268,11 @@ public class HunterMain extends MainBotBaseBrain {
 
     private boolean detectOpponentBis() {
         Map<String, List<Position>> opponents = getOpponentsPosEnhanced();
-        List<Position> positions = positionsOfOpponents(opponents);
         Optional<Position> optionalPosition = candidatEnemyToShot(opponents);
         if (optionalPosition.isPresent()) {
             Position closestPos = optionalPosition.get();
             double distance = closestPos.distanceTo(Position.of(robotX, robotY));
             // effet de bord
-            this.targetPosition = closestPos;
             this.targetDirection = Math.atan2(closestPos.getY() - robotY, closestPos.getX() - robotX);
             if (distance < Parameters.bulletRange) {
                 return true;

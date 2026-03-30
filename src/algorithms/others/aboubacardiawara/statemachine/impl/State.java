@@ -9,7 +9,6 @@ import java.util.function.Supplier;
 import algorithms.others.aboubacardiawara.statemachine.AnyTransitionConditionMetException;
 import algorithms.others.aboubacardiawara.statemachine.interfaces.IState;
 
-
 public class State implements IState {
 
     protected List<IState> nextStates;
@@ -19,7 +18,6 @@ public class State implements IState {
     protected String description;
     protected Optional<Runnable> setUpAction = Optional.empty();
     protected Optional<Runnable> tearDownAction = Optional.empty();
-    
 
     public State(int stateCount) {
         this.nextStates = new ArrayList<>();
@@ -56,7 +54,6 @@ public class State implements IState {
         }
         throw new AnyTransitionConditionMetException();
     }
-
 
     @Override
     public void setUp() {
