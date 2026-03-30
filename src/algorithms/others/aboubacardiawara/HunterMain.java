@@ -33,6 +33,14 @@ public class HunterMain extends MainBotBaseBrain {
     private int init_place_robot = 150;
     double initStateAngleTarget = 0;
 
+    // Enemy position history for velocity-based prediction
+    private Position lastKnownTargetPosition = null;
+    private Position prevKnownTargetPosition = null;
+
+    // Avoid wasting bullets on a stale/unreachable target indefinitely
+    private int fireStrikeCount = 0;
+    private static final int MAX_FIRE_STRIKE = 80;
+
     Random rn = new Random();
     int detect_openent = -1;
     protected Map<Robots, RobotState> teammatesPositions = new HashMap<>();
@@ -136,8 +144,8 @@ public class HunterMain extends MainBotBaseBrain {
         STMoveEast.addNext(STStartFire, () -> opponent_detected);
         STMoveEast.setStateAction(() -> {
             for (IRadarResult radar : detectRadar()) {
-                if (radar.getObjectType() == IRadarResult.Types.BULLET
-                        && radar.getObjectType() == IRadarResult.Types.OpponentMainBot) {
+                // FIX: bullet and opponent are separate checks — && would always be false
+                if (radar.getObjectType() == IRadarResult.Types.BULLET) {
                     bullet_detected = true;
                 }
                 if (radar.getObjectType() == IRadarResult.Types.OpponentMainBot
@@ -146,74 +154,160 @@ public class HunterMain extends MainBotBaseBrain {
                     break;
                 }
             }
+            // FIX: actually evade — don't reset bullet_detected before acting
             if (bullet_detected) {
-                // moveBack();
+                moveBack();
                 bullet_detected = false;
             } else {
                 move();
             }
         });
 
-        // Fire using the messages sznd from the secondery bots.
+        // Fire using positions broadcast by secondary bots
         STMoveEast.addNext(FireByradar, () -> detectOpponentBis());
         FireByradar.setStateAction(() -> {
-            fire(normalize(targetDirection));
+            double angle = predictedFireAngle();
+            // FIX: friendly fire check before shooting
+            if (!isTeammateInLineOfFire(angle)) {
+                fire(normalize(angle));
+                fireStrikeCount++;
+            }
+            // FIX: drop stale target after MAX_FIRE_STRIKE consecutive shots
+            if (fireStrikeCount >= MAX_FIRE_STRIKE) {
+                fireStrikeCount = 0;
+                lastKnownTargetPosition = null;
+                prevKnownTargetPosition = null;
+            }
         });
         FireByradar.addNext(STMoveEast, () -> !detectOpponentBis());
 
-        // Fire using the robot main radar.
+        // Fire using the robot's own radar
         STStartFire.addNext(STMoveEast, () -> !opponent_detected && !fire_opennet_detected);
         STStartFire.setStateAction(() -> {
             fire_opennet_detected = false;
             for (IRadarResult radar : detectRadar()) {
-                if (radar.getObjectType() == IRadarResult.Types.BULLET
-                        && radar.getObjectType() == IRadarResult.Types.OpponentMainBot) {
+                // FIX: separate bullet check
+                if (radar.getObjectType() == IRadarResult.Types.BULLET) {
                     bullet_detected = true;
-                    // moveBack();
                 }
                 if (radar.getObjectType() == IRadarResult.Types.OpponentMainBot
                         || radar.getObjectType() == IRadarResult.Types.OpponentSecondaryBot) {
-                    fire(radar.getObjectDirection());
-                    fire_opennet_detected = true;
+                    double oppX = robotX + radar.getObjectDistance() * Math.cos(radar.getObjectDirection());
+                    double oppY = robotY + radar.getObjectDistance() * Math.sin(radar.getObjectDirection());
+                    // FIX: use velocity-based predicted position instead of current position
+                    double firingAngle = computePredictedAngle(Position.of(oppX, oppY));
+                    // FIX: check friendly fire before shooting
+                    if (!isTeammateInLineOfFire(firingAngle)) {
+                        fire(normalize(firingAngle));
+                        fire_opennet_detected = true;
+                        fireStrikeCount++;
+                    }
                 }
             }
+            // FIX: actually evade bullets
+            if (bullet_detected) {
+                moveBack();
+                bullet_detected = false;
+            }
             opponent_detected = false;
+            // FIX: abandon target if we've been firing without kill for too long
+            if (fireStrikeCount >= MAX_FIRE_STRIKE) {
+                fireStrikeCount = 0;
+                fire_opennet_detected = false;
+                lastKnownTargetPosition = null;
+                prevKnownTargetPosition = null;
+            }
         });
 
-        // Deblocage quand un robot detect un mure.
+        // FIX: wall avoidance uses fastWayToTurn so it always picks the shortest arc,
+        // instead of always turning right (which could be 270° the wrong way)
         STMoveEast.addNext(STTurnWest, () -> detectWall() && isSameDirection(getHeading(), Parameters.EAST));
         STMoveEast.addNext(STTurnWest, () -> detectWall() && isSameDirection(getHeading(), Parameters.NORTH));
         STMoveEast.addNext(STTurnEast, () -> detectWall() && isSameDirection(getHeading(), Parameters.SOUTH));
         STMoveEast.addNext(STTurnEast, () -> detectWall() && isSameDirection(getHeading(), Parameters.WEST));
         STTurnWest.addNext(STMoveEast, () -> isSameDirection(getHeading(), Parameters.WEST));
         STTurnWest.setStateAction(() -> {
-            turnRight();
+            stepTurn(fastWayToTurn(Parameters.WEST));
         });
         STTurnEast.addNext(STMoveEast, () -> isSameDirection(getHeading(), Parameters.EAST));
         STTurnEast.setStateAction(() -> {
-            turnRight();
+            stepTurn(fastWayToTurn(Parameters.EAST));
         });
 
-        // Deblocage quand je detect un autre robot devant moi.
-        // STMoveEast.addNext(DeblocState1, () -> opponentFrontOfMe() &&
-        // this.currentState != STStartFire);
-        // DeblocState1.addNext(DeblocState2, () -> move_back_count==0 );
-        // DeblocState1.setStateAction(() -> {
-        // moveBack();
-        // move_back_count--;
-        // });
-        // DeblocState2.addNext(DeblocState3, ()-> isSameDirection(getHeading(),
-        // Math.PI/2));
-        // DeblocState2.setStateAction(() -> {
-        // turnRight();
-        // move_back_count= 150;
-        // });
-        // DeblocState3.addNext(STMoveEast, () -> isSameDirection(getHeading(), 0));
-        // DeblocState3.setStateAction(() -> {
-        // move();
-        // });
-
         return initState;
+    }
+
+    /**
+     * Computes the angle to fire at an opponent's predicted future position.
+     * Falls back to current position if no velocity history is available.
+     */
+    private double computePredictedAngle(Position current) {
+        if (prevKnownTargetPosition != null && lastKnownTargetPosition != null) {
+            double distance = current.distanceTo(Position.of(robotX, robotY));
+            double travelTime = distance / Parameters.bulletVelocity;
+            double vx = lastKnownTargetPosition.getX() - prevKnownTargetPosition.getX();
+            double vy = lastKnownTargetPosition.getY() - prevKnownTargetPosition.getY();
+            // Detect oscillation: if velocity reversed, aim at average position instead
+            double prevVx = prevKnownTargetPosition.getX() - current.getX();
+            double prevVy = prevKnownTargetPosition.getY() - current.getY();
+            boolean oscillatingX = (prevVx * vx < 0);
+            boolean oscillatingY = (prevVy * vy < 0);
+            double predictedX, predictedY;
+            if (oscillatingX || oscillatingY) {
+                predictedX = (current.getX() + lastKnownTargetPosition.getX()) / 2;
+                predictedY = (current.getY() + lastKnownTargetPosition.getY()) / 2;
+            } else {
+                predictedX = current.getX() + vx * travelTime;
+                predictedY = current.getY() + vy * travelTime;
+            }
+            return Math.atan2(predictedY - robotY, predictedX - robotX);
+        }
+        return Math.atan2(current.getY() - robotY, current.getX() - robotX);
+    }
+
+    /**
+     * Returns the predicted firing angle toward the last tracked target,
+     * accounting for its velocity. Used by FireByradar state.
+     */
+    private double predictedFireAngle() {
+        if (lastKnownTargetPosition != null && prevKnownTargetPosition != null) {
+            double distance = lastKnownTargetPosition.distanceTo(Position.of(robotX, robotY));
+            double travelTime = distance / Parameters.bulletVelocity;
+            double vx = lastKnownTargetPosition.getX() - prevKnownTargetPosition.getX();
+            double vy = lastKnownTargetPosition.getY() - prevKnownTargetPosition.getY();
+            double predictedX = lastKnownTargetPosition.getX() + vx * travelTime;
+            double predictedY = lastKnownTargetPosition.getY() + vy * travelTime;
+            return Math.atan2(predictedY - robotY, predictedX - robotX);
+        }
+        return targetDirection;
+    }
+
+    /**
+     * Returns true if any known teammate lies within teammateRadius of the
+     * bullet trajectory (line from robot to bullet range end at firingAngle).
+     */
+    private boolean isTeammateInLineOfFire(double firingAngle) {
+        double endX = robotX + Math.cos(firingAngle) * Parameters.bulletRange;
+        double endY = robotY + Math.sin(firingAngle) * Parameters.bulletRange;
+        double dx = endX - robotX;
+        double dy = endY - robotY;
+        double segLen = Math.sqrt(dx * dx + dy * dy);
+        if (segLen < 1e-6) return false;
+
+        for (RobotState teammate : teammatesPositions.values()) {
+            Position pos = teammate.getPosition();
+            double px = pos.getX() - robotX;
+            double py = pos.getY() - robotY;
+            // Projection along the firing direction
+            double along = (px * dx + py * dy) / segLen;
+            if (along < 0 || along > segLen) continue;
+            // Perpendicular distance to the firing line
+            double perp = Math.abs(px * dy - py * dx) / segLen;
+            if (perp < teammateRadius) {
+                return true;
+            }
+        }
+        return false;
     }
 
     protected boolean isSameDirection(double heading, double expectedDirection, boolean log) {
@@ -233,13 +327,13 @@ public class HunterMain extends MainBotBaseBrain {
 
     /**
      * Check if there is any opponent in the radar
-     * 
+     *
      * @return 0 if there is no opponent in the radar or they are out of line of
      *         fire
      *         1 if there is at least one opponent in the radar and it is in the
      *         line of fire
      *         2 if the opponents are out of line of fire because of teammates
-     *         being in line of fire.s
+     *         being in line of fire.
      */
     private int detectOpponent() {
         Map<String, List<Position>> opponents = getOpponentsPosEnhanced();
@@ -249,7 +343,9 @@ public class HunterMain extends MainBotBaseBrain {
         if (optionalPosition.isPresent()) {
             Position closestPos = optionalPosition.get();
             double distance = closestPos.distanceTo(Position.of(robotX, robotY));
-            // effet de bord
+            // Update velocity history for predictive aiming
+            prevKnownTargetPosition = lastKnownTargetPosition;
+            lastKnownTargetPosition = closestPos;
             this.targetDirection = Math.atan2(closestPos.getY() - robotY, closestPos.getX() - robotX);
             if (distance > Parameters.bulletRange) {
                 return DetectionResultCode.OPPONENT_OUT_OF_LINE_OF_FIRE;
@@ -272,7 +368,6 @@ public class HunterMain extends MainBotBaseBrain {
         if (optionalPosition.isPresent()) {
             Position closestPos = optionalPosition.get();
             double distance = closestPos.distanceTo(Position.of(robotX, robotY));
-            // effet de bord
             this.targetDirection = Math.atan2(closestPos.getY() - robotY, closestPos.getX() - robotX);
             if (distance < Parameters.bulletRange) {
                 return true;
@@ -282,12 +377,8 @@ public class HunterMain extends MainBotBaseBrain {
     }
 
     /**
-     * Pick a candidate to shot among the list of positions.
-     * main has the priority over secondary.
-     * whatever the category, the closest is the best.
-     * 
-     * @param filteredPoints
-     * @return
+     * Pick a candidate to shoot among the list of positions.
+     * main has priority over secondary; closest wins within each category.
      */
     private Optional<Position> candidatEnemyToShot(Map<String, List<Position>> opponents) {
         List<Position> mainPositions = opponents.get("main");
@@ -312,7 +403,7 @@ public class HunterMain extends MainBotBaseBrain {
     private Map<String, List<Position>> getOpponentsPosEnhanced() {
         Predicate<String> isOpponentLocationMessage = msg -> msg.startsWith(Const.OPPONENT_POS_MSG_SIGN, 0);
         List<String> opponentLocationMsgs = filterMessages(isOpponentLocationMessage);
-        // init with main -> [], and secodary -> []
+        // init with main -> [], and secondary -> []
         Map<String, List<Position>> opponents = new HashMap<>();
         opponents.put("main", new ArrayList<>());
         opponents.put("secondary", new ArrayList<>());

@@ -188,6 +188,20 @@ public abstract class BaseBrain extends Brain {
         return radarResult.getObjectType() != IRadarResult.Types.Wreck;
     }
 
+    /**
+     * Scans radar for incoming bullets and calls moveBack() if one is found.
+     * Returns true if a bullet was detected and evasion was triggered.
+     */
+    protected boolean detectAndEvadeBullet() {
+        for (IRadarResult r : detectRadar()) {
+            if (r.getObjectType() == IRadarResult.Types.BULLET) {
+                moveBack();
+                return true;
+            }
+        }
+        return false;
+    }
+
     protected Direction fastWayToTurn(double targetDirection) {
         double diff = targetDirection - this.getHeading();
         if (diff > Math.PI) {
