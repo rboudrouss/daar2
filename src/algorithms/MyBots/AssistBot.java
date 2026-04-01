@@ -61,6 +61,10 @@ public class AssistBot extends BaseBot {
 			broadcast("DEAD " + botId);
 			return;
 		}
+
+		if (evadeIncomingBullets())
+			return;
+
 		if (isFrozen || !hasNearbyShooter)
 			return;
 
@@ -129,12 +133,18 @@ public class AssistBot extends BaseBot {
 	@Override
 	protected void scanRadar() {
 		isFrozen = false;
+		ArrayList<double[]> rawBullets = new ArrayList<>();
 
 		for (IRadarResult o : detectRadar()) {
 			double oX = position.getX() + o.getObjectDistance() * Math.cos(o.getObjectDirection());
 			double oY = position.getY() + o.getObjectDistance() * Math.sin(o.getObjectDirection());
 
-			if (allies.get(botId).isAlive() && o.getObjectType() != IRadarResult.Types.BULLET) {
+			if (o.getObjectType() == IRadarResult.Types.BULLET) {
+				rawBullets.add(new double[] { oX, oY });
+				continue;
+			}
+
+			if (allies.get(botId).isAlive()) {
 				double checkHeading = (state == State.MOVING_BACK)
 						? normalize(getHeading() + Math.PI)
 						: getHeading();
@@ -163,6 +173,7 @@ public class AssistBot extends BaseBot {
 					break;
 			}
 		}
+		updateTrackedBullets(rawBullets);
 	}
 
 	private void readMessages() {

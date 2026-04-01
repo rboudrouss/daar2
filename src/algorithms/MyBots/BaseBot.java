@@ -41,6 +41,7 @@ abstract class BaseBot extends Brain {
     protected List<Enemy> enemies = new ArrayList<>();
     protected List<double[]> wrecks = new ArrayList<>();
     protected List<Enemy> positionsToAvoid = new ArrayList<>();
+    protected List<Bullet> trackedBullets = new ArrayList<>();
 
     protected Map<String, BotState> allies = new HashMap<>();
 
@@ -302,6 +303,93 @@ abstract class BaseBot extends Brain {
         double dotAB_AB = ABx * ABx + ABy * ABy;
         double dotAD_AD = ADx * ADx + ADy * ADy;
         return (0 <= dotAB && dotAB <= dotAB_AB) && (0 <= dotAD && dotAD <= dotAD_AD);
+    }
+
+    // =========================================BULLET EVASION=========================================
+
+    /**
+     * Matches radar-detected bullets (as absolute positions) to previously tracked bullets
+     * using predicted positions, computing velocity for matched ones.
+     */
+    protected void updateTrackedBullets(List<double[]> rawBullets) {
+        List<Bullet> updated = new ArrayList<>();
+        for (double[] raw : rawBullets) {
+            Bullet match = null;
+            double bestDist = 15.0; // a bit over bulletVelocity=10 to tolerate rounding
+            for (Bullet prev : trackedBullets) {
+                double predX = prev.hasVelocity ? prev.x + prev.vx : prev.x;
+                double predY = prev.hasVelocity ? prev.y + prev.vy : prev.y;
+                double d = Math.hypot(predX - raw[0], predY - raw[1]);
+                if (d < bestDist) {
+                    bestDist = d;
+                    match = prev;
+                }
+            }
+            Bullet nb = new Bullet(raw[0], raw[1]);
+            if (match != null) {
+                nb.vx = raw[0] - match.x;
+                nb.vy = raw[1] - match.y;
+                nb.hasVelocity = true;
+            }
+            updated.add(nb);
+        }
+        trackedBullets = updated;
+    }
+
+    /**
+     * Checks all tracked bullets for threats and attempts a dodge.
+     * Returns true if a dodge action was taken (step consumed).
+     */
+    protected boolean evadeIncomingBullets() {
+        double danger = BOT_RADIUS + Parameters.bulletRadius + 10;
+        for (Bullet b : trackedBullets) {
+            if (!b.hasVelocity)
+                continue;
+            if (isBulletThreat(b, position.getX(), position.getY(), danger)) {
+                performDodge(b, danger);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** True if the bullet's trajectory passes within {@code danger} of point (px, py). */
+    private boolean isBulletThreat(Bullet b, double px, double py, double danger) {
+        double speed = Math.hypot(b.vx, b.vy);
+        if (speed < 1.0)
+            return false;
+        double dirX = b.vx / speed, dirY = b.vy / speed;
+        double dx = px - b.x, dy = py - b.y;
+        // Perpendicular distance from point to bullet's trajectory line
+        double perp = Math.abs(dx * dirY - dy * dirX);
+        if (perp >= danger)
+            return false;
+        // Ensure the bullet is moving toward the point, not away
+        return (dx * dirX + dy * dirY) > 0;
+    }
+
+    /**
+     * Attempts to dodge bullet {@code b} by moving forward or backward along the
+     * current heading. Looks 5 steps ahead to pick the direction that gets us clear.
+     */
+    private void performDodge(Bullet b, double danger) {
+        double speed = getBotSpeed();
+        double heading = getHeading();
+        double lookahead = speed * 5;
+
+        double fx = position.getX() + Math.cos(heading) * lookahead;
+        double fy = position.getY() + Math.sin(heading) * lookahead;
+        if (!isBulletThreat(b, fx, fy, danger)) {
+            tryMove(true);
+            return;
+        }
+
+        double bx = position.getX() - Math.cos(heading) * lookahead;
+        double by = position.getY() - Math.sin(heading) * lookahead;
+        if (!isBulletThreat(b, bx, by, danger)) {
+            tryMove(false);
+        }
+        // If neither direction clears the bullet, do nothing (can't dodge this one)
     }
 
     protected Position[] getObstacleCorners(IRadarResult obstacle, double robotX, double robotY) {

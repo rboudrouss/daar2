@@ -8,6 +8,18 @@ public class Utils {
 
 }
 
+class Bullet {
+    double x, y;
+    double vx, vy;
+    boolean hasVelocity;
+
+    Bullet(double x, double y) {
+        this.x = x;
+        this.y = y;
+        this.hasVelocity = false;
+    }
+}
+
 class BotState {
     private Position position = new Position(0, 0);
     private boolean isAlive = true;

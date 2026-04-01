@@ -82,6 +82,9 @@ public class MainBot extends BaseBot {
             return;
         }
 
+        if (evadeIncomingBullets())
+            return;
+
         currentTarget = selectTarget();
         if (currentTarget != null) {
             state = State.FIRE;
@@ -138,12 +141,18 @@ public class MainBot extends BaseBot {
     @Override
     protected void scanRadar() {
         boolean enemyDetected = false;
+        ArrayList<double[]> rawBullets = new ArrayList<>();
 
         for (IRadarResult o : detectRadar()) {
             double oX = position.getX() + o.getObjectDistance() * Math.cos(o.getObjectDirection());
             double oY = position.getY() + o.getObjectDistance() * Math.sin(o.getObjectDirection());
 
-            if (allies.get(botId).isAlive() && o.getObjectType() != Types.BULLET) {
+            if (o.getObjectType() == Types.BULLET) {
+                rawBullets.add(new double[] { oX, oY });
+                continue;
+            }
+
+            if (allies.get(botId).isAlive()) {
                 double checkHeading = (state == State.MOVING_BACK)
                         ? normalize(getHeading() + Math.PI)
                         : getHeading();
@@ -168,6 +177,7 @@ public class MainBot extends BaseBot {
         if (!enemyDetected && state != State.FIRE && !isAvoiding) {
             state = State.MOVING;
         }
+        updateTrackedBullets(rawBullets);
     }
 
     private void readMessages() {
