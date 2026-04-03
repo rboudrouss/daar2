@@ -1,4 +1,4 @@
-package algorithms.BoudroussDurbin;
+package algorithms;
 
 import characteristics.IRadarResult;
 import characteristics.Parameters;
@@ -77,7 +77,7 @@ public class TeamASecondaryBotBoudroussDurbin extends BaseBotBoudroussDurbin {
 
 		if (getHealth() <= 0) {
 			state = State.DEAD;
-			allies.put(botId, new algorithms.BoudroussDurbin.BotStateDurbin(positionDurbin.getX(), positionDurbin.getY(), false));
+			allies.put(botId, new algorithms.BotStateDurbin(positionDurbin.getX(), positionDurbin.getY(), false));
 			broadcast("DEAD " + botId);
 			return;
 		}

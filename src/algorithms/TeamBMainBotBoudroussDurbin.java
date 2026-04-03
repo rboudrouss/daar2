@@ -1,4 +1,4 @@
-package algorithms.BoudroussDurbin;
+package algorithms;
 
 import characteristics.IRadarResult;
 import characteristics.IRadarResult.Types;
