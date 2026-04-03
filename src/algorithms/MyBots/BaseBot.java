@@ -42,6 +42,7 @@ abstract class BaseBot extends Brain {
     protected List<double[]> wrecks = new ArrayList<>();
     protected List<Enemy> positionsToAvoid = new ArrayList<>();
     protected List<Bullet> trackedBullets = new ArrayList<>();
+    protected boolean enemySpotted = false;
 
     protected Map<String, BotState> allies = new HashMap<>();
 
@@ -84,8 +85,10 @@ abstract class BaseBot extends Brain {
     }
 
     protected void logDebugState() {
-        sendLogMessage("#" + botId + " *thinks* (x,y)= (" + (int) position.getX() + ", " + (int) position.getY()
-                + ") theta= " + (int) (getNormalizedHeading() * 180 / Math.PI) + "°. #State= " + state);
+        if (isScout())
+            sendLogMessage("#" + botId + (enemySpotted ? " ENEMY SPOTTED" : " patrolling..."));
+        else
+            sendLogMessage("#" + botId + (state == State.FIRE ? " FIRE AT WILL" : " advancing..."));
     }
 
     /** Updates allies map from a parsed POS message: POS id x y heading */

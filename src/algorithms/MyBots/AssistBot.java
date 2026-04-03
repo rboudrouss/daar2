@@ -8,7 +8,7 @@ import characteristics.Parameters;
 public class AssistBot extends BaseBot {
 
 	private double rendezvousY;
-	private boolean hasNearbyShooter = false;
+	private double patrolDirection;
 	private boolean isFirstTurn = true;
 
 	public AssistBot() {
@@ -38,7 +38,8 @@ public class AssistBot extends BaseBot {
 		isApproachingRdv = true;
 		state = State.FIRST_RDV;
 		avoidanceBaseAngle = getNormalizedHeading();
-		rendezvousY = botId.equals(SBOT) ? 1650 : 750;
+		rendezvousY = botId.equals(SBOT) ? 1250 : 780;
+		patrolDirection = isTeamA ? Parameters.EAST : Parameters.WEST;
 	}
 
 	@Override
@@ -53,8 +54,6 @@ public class AssistBot extends BaseBot {
 			return;
 		}
 
-		hasNearbyShooter = isShooterNearby();
-
 		if (getHealth() <= 0) {
 			state = State.DEAD;
 			allies.put(botId, new BotState(position.getX(), position.getY(), false));
@@ -65,13 +64,22 @@ public class AssistBot extends BaseBot {
 		if (evadeIncomingBullets())
 			return;
 
-		if (isFrozen || !hasNearbyShooter)
-			return;
+		patrol();
+	}
 
+	private void patrol() {
 		try {
 			switch (state) {
 				case MOVING:
-					tryMove(hasNearbyShooter);
+					if (isFrozen) {
+						patrolDirection = isSameDirection(patrolDirection, Parameters.EAST)
+								? Parameters.WEST : Parameters.EAST;
+					}
+					if (!isSameDirection(getHeading(), patrolDirection)) {
+						turnTo(patrolDirection);
+					} else {
+						tryMove(true);
+					}
 					break;
 				case MOVING_BACK:
 					if (!hasReachedTarget(avoidTargetX, avoidTargetY, false)) {
@@ -94,23 +102,16 @@ public class AssistBot extends BaseBot {
 		}
 	}
 
-	/**
-	 * Moves the bot to its rendezvous position:
-	 * NBOT goes north to rendezvousY then turns east/west.
-	 * SBOT goes south to rendezvousY then turns east/west.
-	 */
 	private void approachRdv() {
 		boolean isNBot = botId.equals(NBOT);
 		double targetHeading = isNBot ? Parameters.NORTH : Parameters.SOUTH;
 
-		// Step 1: turn to face vertical direction
 		if (!isSameDirection(getHeading(), targetHeading) && isFirstTurn) {
 			boolean turnLeft = isNBot ? isTeamA : !isTeamA;
 			stepTurn(turnLeft ? Parameters.Direction.LEFT : Parameters.Direction.RIGHT);
 			return;
 		}
 
-		// Step 2: move vertically to rendezvousY
 		boolean needsToMove = isNBot ? (position.getY() > rendezvousY) : (position.getY() < rendezvousY);
 		if (needsToMove) {
 			isFirstTurn = false;
@@ -118,9 +119,7 @@ public class AssistBot extends BaseBot {
 			return;
 		}
 
-		// Step 3: turn to face east/west
-		double finalHeading = isTeamA ? Parameters.EAST : Parameters.WEST;
-		if (!isSameDirection(getHeading(), finalHeading)) {
+		if (!isSameDirection(getHeading(), patrolDirection)) {
 			boolean turnRight = isNBot ? isTeamA : !isTeamA;
 			stepTurn(turnRight ? Parameters.Direction.RIGHT : Parameters.Direction.LEFT);
 			return;
@@ -133,6 +132,7 @@ public class AssistBot extends BaseBot {
 	@Override
 	protected void scanRadar() {
 		isFrozen = false;
+		enemySpotted = false;
 		ArrayList<double[]> rawBullets = new ArrayList<>();
 
 		for (IRadarResult o : detectRadar()) {
@@ -159,6 +159,7 @@ public class AssistBot extends BaseBot {
 			switch (o.getObjectType()) {
 				case OpponentMainBot:
 				case OpponentSecondaryBot:
+					enemySpotted = true;
 					broadcast("ENEMY " + o.getObjectDirection() + " " + o.getObjectDistance()
 							+ " " + o.getObjectType() + " " + oX + " " + oY);
 					if (o.getObjectDistance() < BOT_RADIUS * 4) {
