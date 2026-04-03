@@ -13,11 +13,11 @@ public class TeamAMainBotBoudroussDurbin extends BaseBotBoudroussDurbin {
     private static final double BULLET_RADIUS = Parameters.bulletRadius;
     private static final double BOT_BULLET_RADIUS = BOT_RADIUS + BULLET_RADIUS;
 
-    private Enemy lastFiredTarget = null;
+    private EnemyDurbin lastFiredTarget = null;
     private double rendezvousX = 0.0;
     private double rendezvousY = 0.0;
     private boolean isManeuvering = false;
-    private Enemy currentTarget;
+    private EnemyDurbin currentTarget;
     private int fireCount = 0;
     private static final int MAX_FIRE_COUNT = 100;
 
@@ -78,7 +78,7 @@ public class TeamAMainBotBoudroussDurbin extends BaseBotBoudroussDurbin {
 
         if (getHealth() <= 0) {
             state = State.DEAD;
-            allies.put(botId, new BotState(positionDurbin.getX(), positionDurbin.getY(), false));
+            allies.put(botId, new BotStateDurbin(positionDurbin.getX(), positionDurbin.getY(), false));
             return;
         }
 
@@ -236,8 +236,8 @@ public class TeamAMainBotBoudroussDurbin extends BaseBotBoudroussDurbin {
         if (!exists)
             wrecks.add(new double[] { wreckX, wreckY });
 
-        Enemy killed = null;
-        for (Enemy enemy : enemies) {
+        EnemyDurbin killed = null;
+        for (EnemyDurbin enemy : enemies) {
             if (Math.abs(enemy.getX() - wreckX) < 50 && Math.abs(enemy.getY() - wreckY) < 50) {
                 killed = enemy;
                 break;
@@ -245,7 +245,7 @@ public class TeamAMainBotBoudroussDurbin extends BaseBotBoudroussDurbin {
         }
         enemies.remove(killed);
         positionsToAvoid.add(killed != null ? killed
-                : new Enemy(wreckX, wreckY, 0, 0, Types.OpponentSecondaryBot));
+                : new EnemyDurbin(wreckX, wreckY, 0, 0, Types.OpponentSecondaryBot));
     }
 
     private void processEnemyMessage(String[] parts) {
@@ -257,7 +257,7 @@ public class TeamAMainBotBoudroussDurbin extends BaseBotBoudroussDurbin {
         trackEnemy(enemyX, enemyY, enemyDistance, enemyDirection, false, enemyType);
     }
 
-    private void executeFire(Enemy target) {
+    private void executeFire(EnemyDurbin target) {
         if (target == null) {
             state = State.MOVING;
             return;
@@ -284,7 +284,7 @@ public class TeamAMainBotBoudroussDurbin extends BaseBotBoudroussDurbin {
         }
     }
 
-    private void maneuverAfterFire(Enemy target) {
+    private void maneuverAfterFire(EnemyDurbin target) {
         if (!isApproximatelySameDirection(target.direction, getHeading())) {
             turnTo(target.direction);
             isManeuvering = false;
@@ -309,7 +309,7 @@ public class TeamAMainBotBoudroussDurbin extends BaseBotBoudroussDurbin {
         isManeuvering = false;
     }
 
-    private double computeFiringAngle(PositionDurbin from, Enemy to) {
+    private double computeFiringAngle(PositionDurbin from, EnemyDurbin to) {
         double dist = distance(new PositionDurbin(to.getX(), to.getY()), from);
         to.predictPosition(dist / Parameters.bulletVelocity);
 
@@ -330,7 +330,7 @@ public class TeamAMainBotBoudroussDurbin extends BaseBotBoudroussDurbin {
     }
 
     private boolean isLineClear(PositionDurbin end) {
-        for (BotState ally : allies.values()) {
+        for (BotStateDurbin ally : allies.values()) {
             if (ally.getPosition().getX() == positionDurbin.getX() && ally.getPosition().getY() == positionDurbin.getY())
                 continue;
             if (blocksFireLine(ally.getPosition(), end, BOT_RADIUS))
@@ -351,13 +351,13 @@ public class TeamAMainBotBoudroussDurbin extends BaseBotBoudroussDurbin {
             dist = Math.sqrt(dx * dx + dy * dy);
             direction = Math.atan2(dy, dx);
         }
-        for (Enemy enemy : enemies) {
+        for (EnemyDurbin enemy : enemies) {
             if (Math.abs(enemy.getX() - x) < 50 && Math.abs(enemy.getY() - y) < 50) {
                 enemy.updatePosition(x, y, dist, direction);
                 return;
             }
         }
-        enemies.add(new Enemy(x, y, dist, direction, type));
+        enemies.add(new EnemyDurbin(x, y, dist, direction, type));
     }
 
     @Override
@@ -405,9 +405,9 @@ public class TeamAMainBotBoudroussDurbin extends BaseBotBoudroussDurbin {
         return Math.sqrt(dx * dx + dy * dy) / Parameters.bulletVelocity;
     }
 
-    private Enemy selectTarget() {
+    private EnemyDurbin selectTarget() {
         Collections.sort(enemies, (e1, e2) -> Double.compare(e1.distance, e2.distance));
-        for (Enemy enemy : enemies) {
+        for (EnemyDurbin enemy : enemies) {
             enemy.predictPosition(bulletTravelTime(enemy.getX(), enemy.getY()));
             PositionDurbin predictedPos = new PositionDurbin(enemy.getPredictedX(), enemy.getPredictedY());
             if (!isAllyInFireLine(predictedPos))
@@ -417,8 +417,8 @@ public class TeamAMainBotBoudroussDurbin extends BaseBotBoudroussDurbin {
     }
 
     private boolean isAllyInFireLine(PositionDurbin predictedTarget) {
-        for (Map.Entry<String, BotState> entry : allies.entrySet()) {
-            BotState ally = entry.getValue();
+        for (Map.Entry<String, BotStateDurbin> entry : allies.entrySet()) {
+            BotStateDurbin ally = entry.getValue();
             if (ally.getPosition().getX() == positionDurbin.getX() && ally.getPosition().getY() == positionDurbin.getY())
                 continue;
 

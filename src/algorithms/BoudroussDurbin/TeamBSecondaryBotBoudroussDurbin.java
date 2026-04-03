@@ -70,7 +70,7 @@ public class TeamBSecondaryBotBoudroussDurbin extends BaseBotBoudroussDurbin {
 
 		if (getHealth() <= 0) {
 			state = State.DEAD;
-			allies.put(botId, new BotState(positionDurbin.getX(), positionDurbin.getY(), false));
+			allies.put(botId, new BotStateDurbin(positionDurbin.getX(), positionDurbin.getY(), false));
 			broadcast("DEAD " + botId);
 			return;
 		}
