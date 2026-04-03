@@ -82,8 +82,6 @@ public class MainBot extends BaseBot {
             return;
         }
 
-        if (evadeIncomingBullets())
-            return;
 
         currentTarget = selectTarget();
         if (currentTarget != null) {
@@ -91,6 +89,9 @@ public class MainBot extends BaseBot {
             if (fireCount == 0)
                 lastFiredTarget = currentTarget;
         }
+
+        if (state != State.FIRE && evadeIncomingBullets())
+            return;
 
         logDebugState();
 

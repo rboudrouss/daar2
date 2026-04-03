@@ -12,8 +12,8 @@ import robotsimulator.Brain;
 
 abstract class BaseBot extends Brain {
 
-    protected static final String NBOT = "NBOT";
-    protected static final String SBOT = "SBOT";
+    protected static final String NBOT = "s1";
+    protected static final String SBOT = "s2";
     protected static final String MAIN1 = "1";
     protected static final String MAIN2 = "2";
     protected static final String MAIN3 = "3";
@@ -388,8 +388,9 @@ abstract class BaseBot extends Brain {
         double by = position.getY() - Math.sin(heading) * lookahead;
         if (!isBulletThreat(b, bx, by, danger)) {
             tryMove(false);
+            return;
         }
-        // If neither direction clears the bullet, do nothing (can't dodge this one)
+        tryMove(false);
     }
 
     protected Position[] getObstacleCorners(IRadarResult obstacle, double robotX, double robotY) {
