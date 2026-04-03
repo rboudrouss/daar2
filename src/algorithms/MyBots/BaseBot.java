@@ -37,6 +37,7 @@ abstract class BaseBot extends Brain {
     protected double avoidanceBaseAngle;
     protected double avoidTargetX, avoidTargetY;
     protected boolean isAvoiding;
+    protected double avoidanceFraction = 0.5;
     protected double rdvXToReach, rdvYToReach;
     protected List<Enemy> enemies = new ArrayList<>();
     protected List<double[]> wrecks = new ArrayList<>();
@@ -133,8 +134,7 @@ abstract class BaseBot extends Brain {
     }
 
     protected void turnLeft() {
-        double avoidance = 0.5;
-        if (!isSameDirection(getHeading(), avoidanceBaseAngle + (-avoidance * Math.PI))) {
+        if (!isSameDirection(getHeading(), avoidanceBaseAngle + (-avoidanceFraction * Math.PI))) {
             stepTurn(Parameters.Direction.LEFT);
         } else {
             state = State.MOVING;
@@ -143,8 +143,7 @@ abstract class BaseBot extends Brain {
     }
 
     protected void turnRight() {
-        double avoidance = 0.5;
-        if (!isSameDirection(getHeading(), avoidanceBaseAngle + (avoidance * Math.PI))) {
+        if (!isSameDirection(getHeading(), avoidanceBaseAngle + (avoidanceFraction * Math.PI))) {
             stepTurn(Parameters.Direction.RIGHT);
         } else {
             state = State.MOVING;
@@ -174,7 +173,6 @@ abstract class BaseBot extends Brain {
     protected void startAvoidance() {
         isAvoiding = true;
         avoidanceBaseAngle = getNormalizedHeading();
-        double avoidance = 0.5;
 
         boolean obstacleInPathRight = false;
         boolean obstacleInPathLeft = false;
@@ -185,23 +183,23 @@ abstract class BaseBot extends Brain {
             for (Position p : getObstacleCorners(o, position.getX(), position.getY())) {
                 if (!obstacleInPathRight) {
                     obstacleInPathRight = isPointInTrajectory(position.getX(), position.getY(),
-                            getHeading() + avoidance * Math.PI, p.getX(), p.getY());
+                            getHeading() + avoidanceFraction * Math.PI, p.getX(), p.getY());
                 }
                 if (!obstacleInPathLeft && botId.equals(SBOT)) {
                     obstacleInPathLeft = isPointInTrajectory(position.getX(), position.getY(),
-                            getHeading() - avoidance * Math.PI, p.getX(), p.getY());
+                            getHeading() - avoidanceFraction * Math.PI, p.getX(), p.getY());
                 }
             }
         }
 
         if (!obstacleInPathRight) {
             state = State.TURNING_RIGHT;
-            avoidTargetX = position.getX() + Math.cos(getHeading() + avoidance * Math.PI) * 50;
-            avoidTargetY = position.getY() + Math.sin(getHeading() + avoidance * Math.PI) * 50;
+            avoidTargetX = position.getX() + Math.cos(getHeading() + avoidanceFraction * Math.PI) * 50;
+            avoidTargetY = position.getY() + Math.sin(getHeading() + avoidanceFraction * Math.PI) * 50;
         } else if (!obstacleInPathLeft) {
             state = State.TURNING_LEFT;
-            avoidTargetX = position.getX() + Math.cos(getHeading() - avoidance * Math.PI) * 50;
-            avoidTargetY = position.getY() + Math.sin(getHeading() - avoidance * Math.PI) * 50;
+            avoidTargetX = position.getX() + Math.cos(getHeading() - avoidanceFraction * Math.PI) * 50;
+            avoidTargetY = position.getY() + Math.sin(getHeading() - avoidanceFraction * Math.PI) * 50;
         } else {
             state = State.MOVING_BACK;
             avoidTargetX = position.getX() - Math.cos(getHeading()) * 50;

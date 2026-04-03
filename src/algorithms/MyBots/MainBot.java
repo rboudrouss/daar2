@@ -268,7 +268,7 @@ public class MainBot extends BaseBot {
         }
 
         double firingAngle = computeFiringAngle(position, target);
-        if (firingAngle != Double.NaN) {
+        if (!Double.isNaN(firingAngle)) {
             fire(firingAngle);
             if (target.equals(lastFiredTarget))
                 fireCount++;

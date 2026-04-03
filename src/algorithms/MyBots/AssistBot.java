@@ -1,15 +1,28 @@
 package algorithms.MyBots;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 import characteristics.IRadarResult;
 import characteristics.Parameters;
 
 public class AssistBot extends BaseBot {
 
+	private static final double MAX_MOVE_DISTANCE = 1500.0; // half of screen width
+	private final Random random = new Random();
+	private double distanceSinceLastTurn = 0.0;
+
 	private double rendezvousY;
 	private boolean hasNearbyShooter = false;
 	private boolean isFirstTurn = true;
+
+	@Override
+	protected void startAvoidance() {
+		// Random angle between 0.2π and 0.8π for varied obstacle avoidance
+		avoidanceFraction = 0.2 + random.nextDouble() * 0.6;
+		distanceSinceLastTurn = 0;
+		super.startAvoidance();
+	}
 
 	public AssistBot() {
 		super();
@@ -38,7 +51,7 @@ public class AssistBot extends BaseBot {
 		isApproachingRdv = true;
 		state = State.FIRST_RDV;
 		avoidanceBaseAngle = getNormalizedHeading();
-		rendezvousY = botId.equals(SBOT) ? 1650 : 750;
+		rendezvousY = botId.equals(SBOT) ? 1250 : 780;
 	}
 
 	@Override
@@ -67,6 +80,15 @@ public class AssistBot extends BaseBot {
 
 		if (isFrozen || !hasNearbyShooter)
 			return;
+
+		if (state == State.MOVING) {
+			distanceSinceLastTurn += getBotSpeed();
+			if (distanceSinceLastTurn >= MAX_MOVE_DISTANCE) {
+				distanceSinceLastTurn = 0;
+				startAvoidance();
+				return;
+			}
+		}
 
 		try {
 			switch (state) {
@@ -159,6 +181,7 @@ public class AssistBot extends BaseBot {
 			switch (o.getObjectType()) {
 				case OpponentMainBot:
 				case OpponentSecondaryBot:
+					distanceSinceLastTurn = 0;
 					broadcast("ENEMY " + o.getObjectDirection() + " " + o.getObjectDistance()
 							+ " " + o.getObjectType() + " " + oX + " " + oY);
 					if (o.getObjectDistance() < BOT_RADIUS * 4) {
