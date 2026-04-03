@@ -360,6 +360,21 @@ public class MainBot extends BaseBot {
         enemies.add(new Enemy(x, y, dist, direction, type));
     }
 
+    @Override
+    protected void logDebugState() {
+        String extra = "";
+        if (state == State.FIRE && currentTarget != null) {
+            extra = " -> target@(" + (int) currentTarget.getX() + "," + (int) currentTarget.getY()
+                    + ") dist=" + (int) currentTarget.distance + " shots=" + fireCount;
+        } else if (isAvoiding) {
+            extra = " [avoiding]";
+        }
+        if (!enemies.isEmpty())
+            extra += " enemies=" + enemies.size();
+        sendLogMessage("[" + botId + "] (" + (int) position.getX() + "," + (int) position.getY()
+                + ") " + (int) (getNormalizedHeading() * 180 / Math.PI) + "° | " + state + extra);
+    }
+
     private boolean blocksFireLine(Position obstacle, Position target, double obstacleRadius) {
         double startX = position.getX(), startY = position.getY();
         double endX = target.getX(), endY = target.getY();

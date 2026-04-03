@@ -176,6 +176,16 @@ public class AssistBot extends BaseBot {
 		updateTrackedBullets(rawBullets);
 	}
 
+	@Override
+	protected void logDebugState() {
+		String extra = "";
+		if (isApproachingRdv) extra += " [rdv]";
+		if (isFrozen) extra += " [frozen]";
+		if (hasNearbyShooter) extra += " [shooter]";
+		sendLogMessage("[" + botId + "] (" + (int) position.getX() + "," + (int) position.getY()
+				+ ") " + (int) (getNormalizedHeading() * 180 / Math.PI) + "° | " + state + extra);
+	}
+
 	private void readMessages() {
 		ArrayList<String> messages = fetchAllMessages();
 		for (String msg : messages) {

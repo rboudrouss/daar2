@@ -84,8 +84,8 @@ abstract class BaseBot extends Brain {
     }
 
     protected void logDebugState() {
-        sendLogMessage("#" + botId + " *thinks* (x,y)= (" + (int) position.getX() + ", " + (int) position.getY()
-                + ") theta= " + (int) (getNormalizedHeading() * 180 / Math.PI) + "°. #State= " + state);
+        sendLogMessage("[" + botId + "] (" + (int) position.getX() + "," + (int) position.getY()
+                + ") " + (int) (getNormalizedHeading() * 180 / Math.PI) + "° | " + state);
     }
 
     /** Updates allies map from a parsed POS message: POS id x y heading */
